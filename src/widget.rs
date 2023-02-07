@@ -11,10 +11,10 @@ pub struct EguiLog {
     max_size: usize,
     receiver: Receiver<LogRecord>,
     log_list: Vec<LogRecord>,
-    filter_level: Option<Level>,
-    filter_span_data: String,
-    filter_data: String,
-    filter_message: String,
+    pub filter_level: Option<Level>,
+    pub filter_span_data: String,
+    pub filter_data: String,
+    pub filter_message: String,
 }
 
 impl EguiLog {
@@ -31,6 +31,40 @@ impl EguiLog {
         }
     }
 
+    /// 更新日志记录。
+    ///
+    /// 返回本次更新接收到的日志记录的最小级别
+    pub fn update(&mut self) -> Option<Level> {
+        let mut ret: Option<Level> = None;
+
+        let recv_count = self.receiver.len().min(self.max_size);
+        if recv_count > 0 {
+            if recv_count >= self.max_size {
+                self.log_list.clear();
+            } else if self.log_list.len() == self.max_size {
+                self.log_list.rotate_left(recv_count);
+                let _ = self.log_list.split_off(self.max_size - recv_count);
+            }
+
+            while let Ok(record) = self.receiver.try_recv() {
+                if let Some(l) = &mut ret {
+                    *l = (*l).min(record.level);
+                } else {
+                    ret = Some(record.level);
+                }
+
+                self.log_list.push(record);
+                if self.log_list.len() == self.max_size {
+                    break;
+                }
+            }
+        }
+
+        ret
+    }
+}
+
+impl EguiLog {
     fn ui_filter(&mut self, ui: &mut Ui) {
         CollapsingHeader::new("filter")
             .id_source(ui.auto_id_with("filter"))
@@ -93,23 +127,6 @@ impl EguiLog {
 
 impl Widget for &mut EguiLog {
     fn ui(self, ui: &mut Ui) -> Response {
-        let recv_count = self.receiver.len().min(self.max_size);
-        if recv_count > 0 {
-            if recv_count >= self.max_size {
-                self.log_list.clear();
-            } else if self.log_list.len() == self.max_size {
-                self.log_list.rotate_left(recv_count);
-                let _ = self.log_list.split_off(self.max_size - recv_count);
-            }
-
-            while let Ok(record) = self.receiver.try_recv() {
-                self.log_list.push(record);
-                if self.log_list.len() == self.max_size {
-                    break;
-                }
-            }
-        }
-
         ui.vertical(|ui| {
             self.ui_filter(ui);
 
@@ -128,7 +145,7 @@ impl Widget for &mut EguiLog {
                             ui.heading("Message");
                             ui.end_row();
 
-                            for log in &self.log_list {
+                            for log in self.log_list.iter().rev() {
                                 if self.filter_level.map(|l| l >= log.level).unwrap_or(true)
                                     && (self.filter_span_data.is_empty()
                                         || log.span_data.iter().any(|(s, map)| {

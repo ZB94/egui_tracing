@@ -3,14 +3,14 @@ extern crate tracing;
 
 use eframe::{App, Frame};
 use egui::{CentralPanel, Context};
-use egui_tracing::widget::EguiLog;
+use egui_tracing::EguiLog;
 use tracing::Span;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
 
 fn main() {
-    let (layer, widget) = egui_tracing::layer::EguiLayer::new(10);
+    let (layer, widget) = egui_tracing::EguiLayer::new(10);
 
     let layer = layer.with_filter(
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("example=trace,warn")),
@@ -54,6 +54,10 @@ impl App for Example {
             if ui.button("log").clicked() {
                 warp_log();
                 info!("clicked");
+            }
+
+            if let Some(level) = self.0.update() {
+                println!("{:?}", level);
             }
 
             ui.add(&mut self.0);
