@@ -15,6 +15,7 @@ pub struct EguiLog {
     pub filter_span_data: String,
     pub filter_data: String,
     pub filter_message: String,
+    pub display_info: DisplayInfo,
 }
 
 impl EguiLog {
@@ -28,6 +29,7 @@ impl EguiLog {
             filter_span_data: String::new(),
             filter_data: String::new(),
             filter_message: String::new(),
+            display_info: DisplayInfo::default(),
         }
     }
 
@@ -66,14 +68,14 @@ impl EguiLog {
 
 impl EguiLog {
     fn ui_filter(&mut self, ui: &mut Ui) {
-        CollapsingHeader::new("filter")
+        CollapsingHeader::new(&self.display_info.filter)
             .id_source(ui.auto_id_with("filter"))
             .default_open(false)
             .show(ui, |ui| {
                 Grid::new(ui.auto_id_with("filter grid"))
                     .num_columns(2)
                     .show(ui, |ui| {
-                        ui.label("level");
+                        ui.label(&self.display_info.level);
                         ui.horizontal(|ui| {
                             let mut checked = self.filter_level.is_some();
                             if ui.checkbox(&mut checked, "").clicked() {
@@ -109,15 +111,15 @@ impl EguiLog {
                         });
                         ui.end_row();
 
-                        ui.label("span data");
+                        ui.label(&self.display_info.span_data);
                         ui.text_edit_singleline(&mut self.filter_span_data);
                         ui.end_row();
 
-                        ui.label("data");
+                        ui.label(&self.display_info.data);
                         ui.text_edit_singleline(&mut self.filter_data);
                         ui.end_row();
 
-                        ui.label("message");
+                        ui.label(&self.display_info.message);
                         ui.text_edit_singleline(&mut self.filter_message);
                         ui.end_row();
                     });
@@ -138,11 +140,11 @@ impl Widget for &mut EguiLog {
                         .num_columns(5)
                         .striped(true)
                         .show(ui, |ui| {
-                            ui.heading("Level");
-                            ui.heading("Time");
-                            ui.heading("Span Data");
-                            ui.heading("Data");
-                            ui.heading("Message");
+                            ui.heading(&self.display_info.level);
+                            ui.heading(&self.display_info.time);
+                            ui.heading(&self.display_info.span_data);
+                            ui.heading(&self.display_info.data);
+                            ui.heading(&self.display_info.message);
                             ui.end_row();
 
                             for log in self.log_list.iter().rev() {
@@ -239,4 +241,27 @@ fn ui_text(ui: &mut Ui, mut text: &str) {
             .desired_width(width)
             .desired_rows(lines),
     );
+}
+
+#[derive(Debug, Clone)]
+pub struct DisplayInfo {
+    pub filter: String,
+    pub level: String,
+    pub time: String,
+    pub span_data: String,
+    pub data: String,
+    pub message: String,
+}
+
+impl Default for DisplayInfo {
+    fn default() -> Self {
+        Self {
+            filter: "Filter".to_string(),
+            level: "Level".to_string(),
+            time: "Time".to_string(),
+            span_data: "Span Data".to_string(),
+            data: "Data".to_string(),
+            message: "Message".to_string(),
+        }
+    }
 }
