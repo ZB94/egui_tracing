@@ -1,5 +1,5 @@
 use crate::widget::EguiLog;
-use chrono::{DateTime, Local};
+use chrono::Local;
 use crossbeam_channel::{Receiver, Sender};
 use parking_lot::RwLock;
 use std::collections::HashMap;
@@ -21,7 +21,7 @@ pub struct EguiLayer {
 #[derive(Debug)]
 pub(crate) struct LogRecord {
     pub level: Level,
-    pub time: DateTime<Local>,
+    pub time: String,
     pub message: String,
     pub data: HashMap<&'static str, String>,
     pub span_data: Vec<(&'static str, HashMap<&'static str, String>)>,
@@ -35,11 +35,7 @@ impl EguiLayer {
             sender,
             receiver: receiver.clone(),
         };
-        let ui = EguiLog {
-            max_size: log_max_size,
-            receiver,
-            log_list: vec![],
-        };
+        let ui = EguiLog::new(log_max_size, receiver);
         (layer, ui)
     }
 }
@@ -75,10 +71,15 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> Layer<S> for EguiLayer {
             })
             .unwrap_or_default();
 
+        let message = data
+            .remove("message")
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default();
+
         let record = LogRecord {
             level,
-            time: Local::now(),
-            message: data.remove("message").unwrap_or_default(),
+            time: Local::now().format("%F %T.%3f").to_string(),
+            message,
             data,
             span_data,
         };
