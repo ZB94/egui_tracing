@@ -223,18 +223,16 @@ fn ui_map(ui: &mut Ui, map: &HashMap<&'static str, String>) {
 
 fn ui_text(ui: &mut Ui, mut text: &str) {
     let font_id = &ui.style().text_styles[&TextStyle::Body];
-    let font = ui.fonts();
 
-    let (mut lines, mut width) = text
-        .lines()
-        .map(|line| line.chars().map(|c| font.glyph_width(font_id, c)).sum())
-        .enumerate()
-        .max_by(|l: &(_, f32), r| l.1.partial_cmp(&r.1).unwrap_or(Ordering::Equal))
-        .unwrap();
-    width = (width + 2.0).min(ui.available_width());
-    lines = lines + 1;
-
-    drop(font);
+    // 8.0 为TextEdit外边距
+    let (lines, width) = ui.fonts(|font| {
+        text.lines()
+            .map(|line| line.chars().map(|c| font.glyph_width(font_id, c)).sum())
+            .enumerate()
+            .max_by(|l: &(_, f32), r| l.1.partial_cmp(&r.1).unwrap_or(Ordering::Equal))
+            .map(|(l, w)| (l + 1, w + 8.0 + font.glyph_width(font_id, ' ')))
+            .unwrap()
+    });
 
     ui.add(
         TextEdit::multiline(&mut text)

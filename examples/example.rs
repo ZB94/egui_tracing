@@ -28,7 +28,7 @@ fn main() {
 
     warp_log();
 
-    eframe::run_native(
+    let _ = eframe::run_native(
         "example",
         Default::default(),
         Box::new(|_| Box::new(Example(widget))),
